@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Create user{% endblock %}
+
+{% block content %}
+<h2>Create</h2>
+<h5 class="text-muted">User</h5>
+<hr>
+
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<form method="post" action="/users/create" style="max-width: 520px">
+    <div class="mb-3">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-control" id="username" name="username" value="{{ model.username }}"
+               required maxlength="100">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="email">Email</label>
+        <input class="form-control" id="email" name="email" type="email" value="{{ model.email }}"
+               required maxlength="255">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" id="password" name="password" type="password" required minlength="6">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="tier">Tier</label>
+        <select class="form-select" id="tier" name="tier" required>
+            {% for tier in tiers %}
+            <option value="{{ tier.id }}" {% if tier.id == model.tier %}selected{% endif %}>
+                {{ tier.id }} ({{ tier.price_ron }} RON)
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="bio">Bio</label>
+        <textarea class="form-control" id="bio" name="bio" rows="3">{{ model.bio or "" }}</textarea>
+    </div>
+
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="email_verified" name="email_verified"
+               value="true" {% if model.email_verified %}checked{% endif %}>
+        <label class="form-check-label" for="email_verified">Email verified</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create</button>
+</form>
+
+<p class="mt-3"><a href="/users">Back to list</a></p>
+{% endblock %}
