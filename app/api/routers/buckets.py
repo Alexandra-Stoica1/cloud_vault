@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -79,8 +80,9 @@ def create(request: Request, session: DbSession):
 def create_post(
     request: Request,
     session: DbSession,
+    # Parameters without a default must come first.
+    owner_id: Annotated[uuid.UUID, Form()],
     name: str = Form(...),
-    owner_id: uuid.UUID = Form(...),
     description: str = Form(""),
     is_shared: bool = Form(False),
 ):
