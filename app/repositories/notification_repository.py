@@ -11,7 +11,9 @@ class NotificationRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def get_by_user(self, user_id: uuid.UUID, only_unread: bool = False) -> Sequence[Notification]:
+    def get_by_user(
+        self, user_id: uuid.UUID, only_unread: bool = False
+    ) -> Sequence[Notification]:
         stmt = select(Notification).where(Notification.user_id == user_id)
         if only_unread:
             stmt = stmt.where(Notification.is_read.is_(False))

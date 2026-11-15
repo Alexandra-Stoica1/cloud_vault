@@ -28,8 +28,14 @@ class Transaction(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default=text("'RON'"))  # ISO 4217
-    tier_purchased: Mapped[str] = mapped_column(String(20), ForeignKey("tiers.id"), nullable=False)
+    currency: Mapped[str] = mapped_column(
+        String(3), nullable=False, server_default=text("'RON'")
+    )  # ISO 4217
+    tier_purchased: Mapped[str] = mapped_column(
+        String(20), ForeignKey("tiers.id"), nullable=False
+    )
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, server_default=text(f"'{TransactionStatus.PENDING.value}'")
+        String(20),
+        nullable=False,
+        server_default=text(f"'{TransactionStatus.PENDING.value}'"),
     )

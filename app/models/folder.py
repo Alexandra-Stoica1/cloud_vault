@@ -24,10 +24,14 @@ class Folder(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         # Target of the composite FKs from folders.parent_id and files.folder_id.
         UniqueConstraint("id", "bucket_id"),
         # No two sibling folders with the same name (NULLS NOT DISTINCT -> also at root level).
-        UniqueConstraint("bucket_id", "parent_id", "name", postgresql_nulls_not_distinct=True),
+        UniqueConstraint(
+            "bucket_id", "parent_id", "name", postgresql_nulls_not_distinct=True
+        ),
         ForeignKeyConstraint(
-            ["parent_id", "bucket_id"], ["folders.id", "folders.bucket_id"],
-            name="fk_folders_parent_id_folders", ondelete="CASCADE",
+            ["parent_id", "bucket_id"],
+            ["folders.id", "folders.bucket_id"],
+            name="fk_folders_parent_id_folders",
+            ondelete="CASCADE",
         ),
     )
 

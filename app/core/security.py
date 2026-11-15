@@ -21,7 +21,9 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
     if algorithm != _ALGORITHM:
         return False
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt_hex), int(iterations))
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode(), bytes.fromhex(salt_hex), int(iterations)
+    )
     return hmac.compare_digest(digest.hex(), digest_hex)
 
 

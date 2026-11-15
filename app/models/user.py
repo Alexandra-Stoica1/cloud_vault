@@ -26,11 +26,16 @@ class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     bio: Mapped[str | None] = mapped_column(Text)
-    email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    email_verified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
     # Current effective tier: cache of the active subscription ('free' when there is none).
     tier: Mapped[str] = mapped_column(
-        String(20), ForeignKey("tiers.id"), nullable=False,
-        server_default=text(f"'{TierId.FREE.value}'"), index=True,
+        String(20),
+        ForeignKey("tiers.id"),
+        nullable=False,
+        server_default=text(f"'{TierId.FREE.value}'"),
+        index=True,
     )
     referral_code: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
 

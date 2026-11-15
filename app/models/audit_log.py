@@ -16,7 +16,9 @@ class AuditLog(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
 
     # Set to NULL when the user is deleted, so the log entry survives.
-    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
     action_type: Mapped[str] = mapped_column(String(50), nullable=False)
     resource_type: Mapped[str | None] = mapped_column(String(50))
     resource_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))

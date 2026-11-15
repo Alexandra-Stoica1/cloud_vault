@@ -23,8 +23,12 @@ class LoginStreak(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    current_streak: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    current_streak: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0")
+    )
     last_login_date: Mapped[date | None] = mapped_column(Date)
-    longest_streak: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    longest_streak: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0")
+    )
 
     user: Mapped["User"] = relationship(back_populates="login_streak")

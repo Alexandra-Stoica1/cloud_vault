@@ -19,7 +19,9 @@ class UserSettings(UpdatedAtMixin, Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    dedup_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    dedup_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
     notification_prefs: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
     user: Mapped["User"] = relationship(back_populates="settings")

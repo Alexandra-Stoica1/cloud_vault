@@ -23,6 +23,8 @@ class PointsAccount(UpdatedAtMixin, Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    balance: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    balance: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0")
+    )
 
     user: Mapped["User"] = relationship(back_populates="points_account")
