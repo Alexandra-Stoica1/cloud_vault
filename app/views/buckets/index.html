@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Buckets{% endblock %}
+
+{% block content %}
+<h2>Buckets</h2>
+<p><a href="/buckets/create">Create new</a></p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Owner</th>
+            <th>Tier</th>
+            <th>Size (bytes)</th>
+            <th>Shared</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for b in model %}
+        <tr>
+            <td>{{ b.name }}</td>
+            <td>{{ b.owner_username }}</td>
+            <td>{{ b.owner_tier }}</td>
+            <td>{{ b.used_bytes }}</td>
+            <td><input type="checkbox" disabled {% if b.is_shared %}checked{% endif %}></td>
+            <td>
+                <a href="/buckets/{{ b.id }}/edit">Edit</a> |
+                <a href="/buckets/{{ b.id }}">Details</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-muted">No buckets found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
