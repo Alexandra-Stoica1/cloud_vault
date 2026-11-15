@@ -16,7 +16,13 @@ class PointsRedemption(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         Index(None, "user_id", "created_at"),
     )
 
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    reward_type: Mapped[str] = mapped_column(String(50), ForeignKey("redemption_rules.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    reward_type: Mapped[str] = mapped_column(
+        String(50), ForeignKey("redemption_rules.id"), nullable=False
+    )
     points_spent: Mapped[int] = mapped_column(Integer, nullable=False)
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # NULL = permanent
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )  # NULL = permanent

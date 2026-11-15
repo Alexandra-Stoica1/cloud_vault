@@ -28,18 +28,27 @@ def sql_in(column: str, enum: type[StrEnum]) -> str:
 
 class UUIDPrimaryKeyMixin:
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"), sort_order=-10
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+        sort_order=-10,
     )
 
 
 class CreatedAtMixin:
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), sort_order=10
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        sort_order=10,
     )
 
 
 class UpdatedAtMixin:
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now(),
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
         sort_order=11,
     )

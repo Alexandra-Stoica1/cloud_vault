@@ -11,7 +11,9 @@ class RedemptionRule(Base):
     __table_args__ = (
         CheckConstraint("cost_points > 0", name="cost_points_positive"),
         # NULL = permanent benefit.
-        CheckConstraint("duration_days IS NULL OR duration_days > 0", name="duration_days_positive"),
+        CheckConstraint(
+            "duration_days IS NULL OR duration_days > 0", name="duration_days_positive"
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(50), primary_key=True)

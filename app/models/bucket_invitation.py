@@ -29,8 +29,12 @@ class BucketInvitation(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
     invited_email: Mapped[str] = mapped_column(String(255), nullable=False)
     token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    accepted: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    accepted: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
     bucket: Mapped["Bucket"] = relationship(back_populates="invitations")
     inviter: Mapped["User"] = relationship()

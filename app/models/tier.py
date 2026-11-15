@@ -28,8 +28,10 @@ class Tier(Base):
         CheckConstraint("max_file_size_bytes > 0", name="max_file_size_positive"),
         CheckConstraint("price_ron >= 0", name="price_non_negative"),
         # NULL = unlimited, 0 = no shared buckets allowed.
-        CheckConstraint("max_shared_buckets IS NULL OR max_shared_buckets >= 0",
-                        name="max_shared_buckets_non_negative"),
+        CheckConstraint(
+            "max_shared_buckets IS NULL OR max_shared_buckets >= 0",
+            name="max_shared_buckets_non_negative",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(20), primary_key=True)

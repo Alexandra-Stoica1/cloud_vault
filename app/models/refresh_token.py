@@ -17,8 +17,14 @@ class RefreshToken(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)  # SHA-256 hex
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    revoked: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    token_hash: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True
+    )  # SHA-256 hex
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    revoked: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
 
     user: Mapped["User"] = relationship(back_populates="refresh_tokens")

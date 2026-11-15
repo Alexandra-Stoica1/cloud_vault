@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ model.name }}{% endblock %}
+
+{% block content %}
+<h2>Details</h2>
+<h5 class="text-muted">Bucket</h5>
+<hr>
+
+<dl class="row">
+    <dt class="col-sm-2 text-sm-end">Name</dt>
+    <dd class="col-sm-10">{{ model.name }}</dd>
+
+    <dt class="col-sm-2 text-sm-end">Owner</dt>
+    <dd class="col-sm-10"><a href="/users/{{ model.owner_id }}">{{ model.owner_username }}</a> ({{ model.owner_tier }})</dd>
+
+    <dt class="col-sm-2 text-sm-end">Description</dt>
+    <dd class="col-sm-10">{{ model.description or "-" }}</dd>
+
+    <dt class="col-sm-2 text-sm-end">Shared</dt>
+    <dd class="col-sm-10"><input type="checkbox" disabled {% if model.is_shared %}checked{% endif %}></dd>
+
+    <dt class="col-sm-2 text-sm-end">Size (bytes)</dt>
+    <dd class="col-sm-10">{{ model.used_bytes }}</dd>
+
+    <dt class="col-sm-2 text-sm-end">Created at</dt>
+    <dd class="col-sm-10">{{ model.created_at.strftime("%Y-%m-%d %H:%M") }}</dd>
+
+    <dt class="col-sm-2 text-sm-end">Updated at</dt>
+    <dd class="col-sm-10">{{ model.updated_at.strftime("%Y-%m-%d %H:%M") }}</dd>
+</dl>
+
+<p>
+    <a href="/buckets/{{ model.id }}/edit">Edit</a> |
+    <a href="/buckets">Back to list</a>
+</p>
+{% endblock %}

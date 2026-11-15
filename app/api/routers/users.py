@@ -34,8 +34,14 @@ def render_form(
     model: UserViewModel,
     error: str | None = None,
 ):
-    context = {"model": model, "tiers": TierRepository(session).get_all(), "error": error}
-    return templates.TemplateResponse(request, view, context, status_code=400 if error else 200)
+    context = {
+        "model": model,
+        "tiers": TierRepository(session).get_all(),
+        "error": error,
+    }
+    return templates.TemplateResponse(
+        request, view, context, status_code=400 if error else 200
+    )
 
 
 @router.get("")
@@ -79,7 +85,9 @@ def create_post(
         )
     except IntegrityError as error:
         session.rollback()
-        return render_form(request, session, "users/create.html", model, integrity_error_message(error))
+        return render_form(
+            request, session, "users/create.html", model, integrity_error_message(error)
+        )
     return RedirectResponse(f"/users/{user.id}", status_code=303)
 
 
@@ -97,7 +105,9 @@ def edit(request: Request, user_id: uuid.UUID, session: DbSession):
     user = UserRepository(session).get_by_id(user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    return render_form(request, session, "users/edit.html", UserViewModel.model_validate(user))
+    return render_form(
+        request, session, "users/edit.html", UserViewModel.model_validate(user)
+    )
 
 
 @router.post("/{user_id}/edit")
@@ -130,7 +140,9 @@ def edit_post(
         )
     except IntegrityError as error:
         session.rollback()
-        return render_form(request, session, "users/edit.html", model, integrity_error_message(error))
+        return render_form(
+            request, session, "users/edit.html", model, integrity_error_message(error)
+        )
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return RedirectResponse(f"/users/{user_id}", status_code=303)
