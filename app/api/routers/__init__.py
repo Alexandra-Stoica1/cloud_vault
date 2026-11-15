@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
-from app.api.routers import health, users
+from app.api.routers import buckets, health, users
 
 api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(users.router)
+api_router.include_router(buckets.router)
 
 __all__ = ["api_router"]
