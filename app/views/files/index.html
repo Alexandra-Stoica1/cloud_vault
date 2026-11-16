@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Files{% endblock %}
+
+{% block content %}
+<h2>Files</h2>
+<p><a href="/files/create">Create new</a></p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Filename</th>
+            <th>Bucket</th>
+            <th>Uploader</th>
+            <th>Folder</th>
+            <th>Size (bytes)</th>
+            <th>MIME type</th>
+            <th>Public</th>
+            <th>Duplicate</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for f in model %}
+        <tr>
+            <td>{{ f.filename }}</td>
+            <td>{{ f.bucket_name }}</td>
+            <td>{{ f.uploader_username or "(deleted user)" }}</td>
+            <td>{{ f.folder_name or "-" }}</td>
+            <td>{{ f.size_bytes }}</td>
+            <td>{{ f.mime_type or "-" }}</td>
+            <td><input type="checkbox" disabled {% if f.is_public %}checked{% endif %}></td>
+            <td><input type="checkbox" disabled {% if f.is_duplicate %}checked{% endif %}></td>
+            <td>
+                <a href="/files/{{ f.id }}/edit">Edit</a> |
+                <a href="/files/{{ f.id }}">Details</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-muted">No files found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
