@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import DbSession, templates
+from app.core.formatting import format_size
 from app.models import File
 from app.repositories import (
     BucketRepository,
@@ -31,15 +32,6 @@ DEFAULT_ERROR = "The file could not be saved."
 def integrity_error_message(error: IntegrityError) -> str:
     constraint = getattr(getattr(error.orig, "diag", None), "constraint_name", None)
     return CONSTRAINT_ERRORS.get(constraint, DEFAULT_ERROR)
-
-
-def format_size(size_bytes: int) -> str:
-    size = float(size_bytes)
-    for unit in ("B", "KB", "MB", "GB"):
-        if size < 1024:
-            return f"{size:.0f} {unit}"
-        size /= 1024
-    return f"{size:.0f} TB"
 
 
 def parse_folder_id(value: str) -> uuid.UUID | None:

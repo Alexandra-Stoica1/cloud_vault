@@ -1,43 +1,17 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import DbSession, templates
-from app.repositories import BucketRepository, UserRepository
+from app.repositories import UserRepository
 from app.schemas import BucketViewModel
+from app.services import BucketService, ServiceError
 
+# Server-rendered pages. Business rules live in BucketService (shared with /api/buckets).
 router = APIRouter(prefix="/buckets", tags=["buckets"])
-
-# Database constraint name -> message shown in the form.
-CONSTRAINT_ERRORS = {
-    "uq_buckets_owner_id_name": "This owner already has a bucket with this name.",
-    "fk_buckets_owner_id_users": "The selected owner does not exist.",
-}
-DEFAULT_ERROR = "The bucket could not be saved."
-
-
-def integrity_error_message(error: IntegrityError) -> str:
-    constraint = getattr(getattr(error.orig, "diag", None), "constraint_name", None)
-    return CONSTRAINT_ERRORS.get(constraint, DEFAULT_ERROR)
-
-
-def shared_bucket_limit_error(session: Session, owner_id: uuid.UUID) -> str | None:
-    """Return an error if the owner's tier does not allow one more shared bucket."""
-    owner = UserRepository(session).get_by_id(owner_id)
-    if owner is None:
-        return "The selected owner does not exist."
-    limit = owner.tier_ref.max_shared_buckets  # NULL = unlimited
-    if limit is None:
-        return None
-    if BucketRepository(session).count_shared_by_owner(owner_id) >= limit:
-        if limit == 0:
-            return f"The '{owner.tier}' tier does not allow shared buckets."
-        return f"The '{owner.tier}' tier allows at most {limit} shared buckets."
-    return None
 
 
 def render_form(
@@ -57,16 +31,9 @@ def render_form(
     )
 
 
-def get_bucket_or_404(session: Session, bucket_id: uuid.UUID):
-    bucket = BucketRepository(session).get_by_id(bucket_id)
-    if bucket is None:
-        raise HTTPException(status_code=404, detail="Bucket not found")
-    return bucket
-
-
 @router.get("")
 def index(request: Request, session: DbSession):
-    buckets = BucketRepository(session).get_all()
+    buckets = BucketService(session).list_all()
     model = [BucketViewModel.from_entity(bucket) for bucket in buckets]
     return templates.TemplateResponse(request, "buckets/index.html", {"model": model})
 
@@ -92,38 +59,29 @@ def create_post(
         description=description.strip() or None,
         is_shared=is_shared,
     )
-    if model.is_shared:
-        error = shared_bucket_limit_error(session, owner_id)
-        if error:
-            return render_form(request, session, "buckets/create.html", model, error)
     try:
-        bucket = BucketRepository(session).create(
-            name=model.name,
+        bucket = BucketService(session).create(
             owner_id=owner_id,
+            name=model.name,
             description=model.description,
             is_shared=model.is_shared,
         )
-    except IntegrityError as error:
-        session.rollback()
+    except ServiceError as error:
         return render_form(
-            request,
-            session,
-            "buckets/create.html",
-            model,
-            integrity_error_message(error),
+            request, session, "buckets/create.html", model, error.message
         )
     return RedirectResponse(f"/buckets/{bucket.id}", status_code=303)
 
 
 @router.get("/{bucket_id}")
 def details(request: Request, bucket_id: uuid.UUID, session: DbSession):
-    model = BucketViewModel.from_entity(get_bucket_or_404(session, bucket_id))
+    model = BucketViewModel.from_entity(BucketService(session).get(bucket_id))
     return templates.TemplateResponse(request, "buckets/details.html", {"model": model})
 
 
 @router.get("/{bucket_id}/edit")
 def edit(request: Request, bucket_id: uuid.UUID, session: DbSession):
-    model = BucketViewModel.from_entity(get_bucket_or_404(session, bucket_id))
+    model = BucketViewModel.from_entity(BucketService(session).get(bucket_id))
     return render_form(request, session, "buckets/edit.html", model)
 
 
@@ -136,16 +94,12 @@ def edit_post(
     description: str = Form(""),
 ):
     # Owner and shared flag are fixed after creation; only name and description can change.
-    model = BucketViewModel.from_entity(get_bucket_or_404(session, bucket_id))
+    service = BucketService(session)
+    model = BucketViewModel.from_entity(service.get(bucket_id))
     model.name = name.strip()
     model.description = description.strip() or None
     try:
-        BucketRepository(session).update(
-            bucket_id, name=model.name, description=model.description
-        )
-    except IntegrityError as error:
-        session.rollback()
-        return render_form(
-            request, session, "buckets/edit.html", model, integrity_error_message(error)
-        )
+        service.update(bucket_id, name=model.name, description=model.description)
+    except ServiceError as error:
+        return render_form(request, session, "buckets/edit.html", model, error.message)
     return RedirectResponse(f"/buckets/{bucket_id}", status_code=303)
