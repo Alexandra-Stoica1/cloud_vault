@@ -1,11 +1,21 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from app.services.exceptions import AuthenticationError, ConflictError, ServiceError
+from app.services.exceptions import (
+    AuthenticationError,
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ServiceError,
+)
 
 STATUS_BY_ERROR: dict[type[ServiceError], int] = {
-    ConflictError: status.HTTP_409_CONFLICT,
+    BusinessRuleError: status.HTTP_400_BAD_REQUEST,
     AuthenticationError: status.HTTP_401_UNAUTHORIZED,
+    PermissionDeniedError: status.HTTP_403_FORBIDDEN,
+    NotFoundError: status.HTTP_404_NOT_FOUND,
+    ConflictError: status.HTTP_409_CONFLICT,
 }
 
 
