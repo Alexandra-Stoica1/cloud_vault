@@ -77,6 +77,12 @@ copy .env.example .env
 
 On Linux / macOS use `cp .env.example .env` instead.
 
+Set `JWT_SECRET_KEY` to a random value of at least 32 characters; the app does not start without it:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
 `.env` is ignored by git, so never commit real credentials.
 
 ### 4. Database
@@ -103,6 +109,22 @@ uvicorn app.main:app --reload
 |-----|-------------|
 | http://127.0.0.1:8000/health | health check (also tests the database connection) |
 | http://127.0.0.1:8000/docs | interactive API documentation (Swagger UI) |
+
+## Authentication API
+
+| Method | Endpoint | Body | Response |
+|--------|----------|------|----------|
+| POST | `/api/auth/register` | `email`, `username`, `password` | `201` user, `409` if email or username is taken |
+| POST | `/api/auth/login` | `email`, `password` | `200` `access_token`, `refresh_token`, `expires_in`; `401` on wrong credentials |
+| POST | `/api/auth/refresh` | `refresh_token` | `200` new token pair (the old refresh token is revoked) |
+| POST | `/api/auth/logout` | `refresh_token` | `204` |
+| GET | `/api/auth/me` | header `Authorization: Bearer <access_token>` | `200` current user |
+
+- The **access token** is a JWT valid for `ACCESS_TOKEN_EXPIRE_MINUTES` (15 by default).
+- The **refresh token** is a random string valid for `REFRESH_TOKEN_EXPIRE_DAYS` (7 by default).
+  Only its SHA-256 hash is stored. Every refresh replaces it; reusing an old one revokes all
+  of the user's refresh tokens.
+- In `/docs`, click **Authorize** and paste the access token to call protected endpoints.
 
 ## Database migrations (Alembic)
 
