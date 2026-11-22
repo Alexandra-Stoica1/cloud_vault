@@ -17,7 +17,7 @@ class TierRepository:
     def get_by_id(self, tier_id: str) -> Tier | None:
         return self.session.get(Tier, tier_id)
 
-    def create(
+    def add(
         self,
         tier_id: str,
         storage_limit_bytes: int,
@@ -35,14 +35,9 @@ class TierRepository:
             description=description,
         )
         self.session.add(tier)
-        self.session.commit()
-        self.session.refresh(tier)
+        self.session.flush()
         return tier
 
-    def delete(self, tier_id: str) -> bool:
-        tier = self.get_by_id(tier_id)
-        if tier is None:
-            return False
+    def delete(self, tier: Tier) -> None:
         self.session.delete(tier)
-        self.session.commit()
-        return True
+        self.session.flush()
