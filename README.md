@@ -109,6 +109,21 @@ uvicorn app.main:app --reload
 |-----|-------------|
 | http://127.0.0.1:8000/health | health check (also tests the database connection) |
 | http://127.0.0.1:8000/docs | interactive API documentation (Swagger UI) |
+| http://127.0.0.1:8000/login | login for the admin pages |
+
+## Admin pages
+
+The server-rendered pages under `/users`, `/buckets` and `/files` are for administrators only
+(`users.is_admin = true`). Without a session they redirect to `/login`; logged-in users who are
+not administrators get `403`.
+
+- The migrations create a demo administrator: `admin@example.com`, password `CloudVault-demo-2026`
+  (the same password as the other demo accounts). Change it outside development.
+- The session is a JWT kept in an HttpOnly, SameSite=Strict cookie, valid for
+  `ADMIN_SESSION_EXPIRE_MINUTES` (60 by default). It is marked Secure when `DEBUG=false`.
+- Admin sessions and API access tokens are not interchangeable: the cookie does not work as a
+  Bearer token and an API token does not open the admin pages.
+- The **Log out** button in the navigation bar removes the cookie.
 
 ## Authentication API
 
@@ -125,6 +140,18 @@ uvicorn app.main:app --reload
   Only its SHA-256 hash is stored. Every refresh replaces it; reusing an old one revokes all
   of the user's refresh tokens.
 - In `/docs`, click **Authorize** and paste the access token to call protected endpoints.
+
+## Buckets API
+
+All endpoints need `Authorization: Bearer <access_token>`.
+
+| Method | Endpoint | Body | Response |
+|--------|----------|------|----------|
+| GET | `/api/buckets` | - | `200` buckets the user owns or is a member of |
+| GET | `/api/buckets/{id}` | - | `200` bucket, `404` if it does not exist or the user has no access |
+| POST | `/api/buckets` | `name`, `description`, `is_shared` | `201` bucket, `409` duplicate name, `400` shared bucket limit of the tier |
+| PUT | `/api/buckets/{id}` | `name`, `description` | `200` bucket, `403` if the user is not the owner |
+| DELETE | `/api/buckets/{id}` | - | `204`, `403` if the user is not the owner; also deletes the bucket's folders and files |
 
 ## Database migrations (Alembic)
 
