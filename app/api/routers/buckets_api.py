@@ -49,3 +49,11 @@ def update_bucket(
         acting_user_id=user.id,
     )
     return BucketResponse.model_validate(bucket)
+
+
+@router.delete("/{bucket_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_bucket(bucket_id: uuid.UUID, session: DbSession, user: CurrentUser) -> None:
+    """Delete the bucket with all its folders and files.
+    Only the owner can delete (403 for members, 404 without access).
+    """
+    BucketService(session).delete(bucket_id, acting_user_id=user.id)

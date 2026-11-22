@@ -100,6 +100,26 @@ class BucketService:
         self.session.refresh(bucket)
         return bucket
 
+    def count_contents(self, bucket_id: uuid.UUID) -> tuple[int, int]:
+        """Folders and files that are removed together with the bucket."""
+        return self.buckets.count_contents(bucket_id)
+
+    def delete(
+        self, bucket_id: uuid.UUID, acting_user_id: uuid.UUID | None = None
+    ) -> None:
+        """Delete the bucket with its members, invitations, folders and files
+        (ON DELETE CASCADE). Without acting_user_id (admin pages) any bucket can be deleted.
+        """
+        bucket = self.get(bucket_id)
+        if acting_user_id is not None:
+            if not self._can_access(bucket, acting_user_id):
+                raise NotFoundError(BUCKET_NOT_FOUND)
+            if bucket.owner_id != acting_user_id:
+                raise PermissionDeniedError("Only the owner can delete this bucket.")
+        # TODO: also delete the objects from MinIO once file uploads are stored there.
+        self.buckets.delete(bucket)
+        self.session.commit()
+
     @staticmethod
     def _can_access(bucket: Bucket, user_id: uuid.UUID) -> bool:
         return bucket.owner_id == user_id or any(

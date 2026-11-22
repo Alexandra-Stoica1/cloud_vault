@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.models import Bucket, BucketMember, BucketRole
+from app.models import Bucket, BucketMember, BucketRole, File, Folder
 
 
 class BucketRepository:
@@ -53,6 +53,12 @@ class BucketRepository:
             .where(Bucket.owner_id == owner_id, Bucket.is_shared.is_(True))
         )
         return self.session.scalar(stmt) or 0
+
+    def count_contents(self, bucket_id: uuid.UUID) -> tuple[int, int]:
+        """Number of folders and files stored in the bucket."""
+        folders = select(func.count()).where(Folder.bucket_id == bucket_id)
+        files = select(func.count()).where(File.bucket_id == bucket_id)
+        return self.session.scalar(folders) or 0, self.session.scalar(files) or 0
 
     def used_bytes_by_owner(self, owner_id: uuid.UUID) -> int:
         """Storage counted toward the owner's quota: the sum over their personal buckets."""
