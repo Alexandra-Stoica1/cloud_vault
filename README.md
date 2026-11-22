@@ -111,6 +111,9 @@ uvicorn app.main:app --reload
 | http://127.0.0.1:8000/docs | interactive API documentation (Swagger UI) |
 | http://127.0.0.1:8000/login | login for the admin pages |
 
+To run it in production mode so other devices on the network can open it, see
+[docs/deployment.md](docs/deployment.md).
+
 ## Admin pages
 
 The server-rendered pages under `/users`, `/buckets` and `/files` are for administrators only
