@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models import Bucket, BucketMember, BucketRole
@@ -53,6 +53,21 @@ class BucketRepository:
             .where(Bucket.owner_id == owner_id, Bucket.is_shared.is_(True))
         )
         return self.session.scalar(stmt) or 0
+
+    def used_bytes_by_owner(self, owner_id: uuid.UUID) -> int:
+        """Storage counted toward the owner's quota: the sum over their personal buckets."""
+        stmt = select(func.coalesce(func.sum(Bucket.used_bytes), 0)).where(
+            Bucket.owner_id == owner_id, Bucket.is_shared.is_(False)
+        )
+        return self.session.scalar(stmt) or 0
+
+    def add_used_bytes(self, bucket_id: uuid.UUID, size_bytes: int) -> None:
+        """Atomic increment in SQL: concurrent uploads cannot overwrite each other."""
+        self.session.execute(
+            update(Bucket)
+            .where(Bucket.id == bucket_id)
+            .values(used_bytes=Bucket.used_bytes + size_bytes)
+        )
 
     def add(
         self,
