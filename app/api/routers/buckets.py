@@ -6,9 +6,8 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import DbSession, templates
-from app.repositories import UserRepository
 from app.schemas import BucketViewModel
-from app.services import BucketService, ServiceError
+from app.services import BucketService, ServiceError, UserService
 
 # Server-rendered pages. Business rules live in BucketService (shared with /api/buckets).
 router = APIRouter(prefix="/buckets", tags=["buckets"])
@@ -23,7 +22,7 @@ def render_form(
 ):
     context = {
         "model": model,
-        "users": UserRepository(session).get_all(),
+        "users": UserService(session).list_all(),
         "error": error,
     }
     return templates.TemplateResponse(

@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Sequence
+from typing import NoReturn
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -59,10 +60,16 @@ class BucketService:
                 owner_id, owner.tier, owner.tier_ref.max_shared_buckets
             )
 
-        bucket = self.buckets.add(
-            name=name, owner_id=owner_id, description=description, is_shared=is_shared
-        )
-        self._commit()
+        try:
+            bucket = self.buckets.add(
+                name=name,
+                owner_id=owner_id,
+                description=description,
+                is_shared=is_shared,
+            )
+            self.session.commit()
+        except IntegrityError as error:
+            self._raise_duplicate_name(error)
         self.session.refresh(bucket)
         return bucket
 
@@ -85,8 +92,11 @@ class BucketService:
         if existing is not None and existing.id != bucket.id:
             raise ConflictError(DUPLICATE_NAME)
 
-        self.buckets.update(bucket, name=name, description=description)
-        self._commit()
+        try:
+            self.buckets.update(bucket, name=name, description=description)
+            self.session.commit()
+        except IntegrityError as error:
+            self._raise_duplicate_name(error)
         self.session.refresh(bucket)
         return bucket
 
@@ -110,10 +120,9 @@ class BucketService:
                 f"The '{tier}' tier allows at most {limit} shared buckets."
             )
 
-    def _commit(self) -> None:
-        try:
-            self.session.commit()
-        except IntegrityError as error:
-            # Another request created the same bucket name in the meantime.
-            self.session.rollback()
-            raise ConflictError(DUPLICATE_NAME) from error
+    def _raise_duplicate_name(self, error: IntegrityError) -> NoReturn:
+        """Another request created the same bucket name in the meantime.
+        The error can come from the repository flush, not only from the commit.
+        """
+        self.session.rollback()
+        raise ConflictError(DUPLICATE_NAME) from error
