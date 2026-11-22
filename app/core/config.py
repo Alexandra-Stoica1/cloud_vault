@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = Field(default=15, ge=1)
     refresh_token_expire_days: int = Field(default=7, ge=1)
+    # Lifetime of the cookie session used by the admin HTML pages.
+    admin_session_expire_minutes: int = Field(default=60, ge=1)
 
     @property
     def sqlalchemy_database_url(self) -> str:

@@ -43,5 +43,6 @@ class UserResponse(BaseModel):
     username: str
     tier: str
     email_verified: bool
+    is_admin: bool
     referral_code: str
     created_at: datetime

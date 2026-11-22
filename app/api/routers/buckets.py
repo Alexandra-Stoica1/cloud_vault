@@ -1,16 +1,19 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import DbSession, templates
+from app.api.deps import DbSession, get_current_admin, templates
 from app.schemas import BucketViewModel
 from app.services import BucketService, ServiceError, UserService
 
 # Server-rendered pages. Business rules live in BucketService (shared with /api/buckets).
-router = APIRouter(prefix="/buckets", tags=["buckets"])
+# Admins only: every page requires an admin session (see /login).
+router = APIRouter(
+    prefix="/buckets", tags=["buckets"], dependencies=[Depends(get_current_admin)]
+)
 
 
 def render_form(
@@ -102,3 +105,18 @@ def edit_post(
     except ServiceError as error:
         return render_form(request, session, "buckets/edit.html", model, error.message)
     return RedirectResponse(f"/buckets/{bucket_id}", status_code=303)
+
+
+@router.get("/{bucket_id}/delete")
+def delete(request: Request, bucket_id: uuid.UUID, session: DbSession):
+    service = BucketService(session)
+    model = BucketViewModel.from_entity(service.get(bucket_id))
+    folder_count, file_count = service.count_contents(bucket_id)
+    context = {"model": model, "folder_count": folder_count, "file_count": file_count}
+    return templates.TemplateResponse(request, "buckets/delete.html", context)
+
+
+@router.post("/{bucket_id}/delete")
+def delete_post(bucket_id: uuid.UUID, session: DbSession):
+    BucketService(session).delete(bucket_id)
+    return RedirectResponse("/buckets", status_code=303)

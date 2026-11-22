@@ -26,7 +26,8 @@
             <td><input type="checkbox" disabled {% if b.is_shared %}checked{% endif %}></td>
             <td>
                 <a href="/buckets/{{ b.id }}/edit">Edit</a> |
-                <a href="/buckets/{{ b.id }}">Details</a>
+                <a href="/buckets/{{ b.id }}">Details</a> |
+                <a href="/buckets/{{ b.id }}/delete">Delete</a>
             </td>
         </tr>
         {% else %}

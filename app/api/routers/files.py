@@ -1,16 +1,19 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import DbSession, templates
+from app.api.deps import DbSession, get_current_admin, templates
 from app.schemas import FileViewModel
 from app.services import BucketService, FileService, ServiceError, UserService
 
 # Server-rendered pages. Business rules live in FileService.
-router = APIRouter(prefix="/files", tags=["files"])
+# Admins only: every page requires an admin session (see /login).
+router = APIRouter(
+    prefix="/files", tags=["files"], dependencies=[Depends(get_current_admin)]
+)
 
 
 def parse_folder_id(value: str) -> uuid.UUID | None:

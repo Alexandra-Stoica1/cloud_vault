@@ -54,18 +54,30 @@ def dummy_password_hash() -> str:
     return hash_password(secrets.token_urlsafe(16))
 
 
+# JWT "type" claim: API access tokens and admin page sessions are not interchangeable.
+ACCESS_TOKEN = "access"
+ADMIN_SESSION_TOKEN = "admin_session"
+
+
 class InvalidAccessTokenError(Exception):
     """The access token is malformed, has a bad signature or has expired."""
 
 
-def create_access_token(user_id: uuid.UUID) -> tuple[str, int]:
-    """Return a signed JWT for the user and its lifetime in seconds."""
+def create_access_token(
+    user_id: uuid.UUID,
+    token_type: str = ACCESS_TOKEN,
+    expires_in: int | None = None,
+) -> tuple[str, int]:
+    """Return a signed JWT for the user and its lifetime in seconds.
+    The lifetime defaults to ACCESS_TOKEN_EXPIRE_MINUTES.
+    """
     settings = get_settings()
-    expires_in = settings.access_token_expire_minutes * 60
+    if expires_in is None:
+        expires_in = settings.access_token_expire_minutes * 60
     now = datetime.now(UTC)
     payload = {
         "sub": str(user_id),
-        "type": "access",
+        "type": token_type,
         "iat": now,
         "exp": now + timedelta(seconds=expires_in),
     }
@@ -77,8 +89,8 @@ def create_access_token(user_id: uuid.UUID) -> tuple[str, int]:
     return token, expires_in
 
 
-def decode_access_token(token: str) -> uuid.UUID:
-    """Validate the JWT and return the user id it was issued for."""
+def decode_access_token(token: str, token_type: str = ACCESS_TOKEN) -> uuid.UUID:
+    """Validate the JWT (signature, expiry and type) and return the user id it was issued for."""
     settings = get_settings()
     try:
         payload = jwt.decode(
@@ -87,7 +99,7 @@ def decode_access_token(token: str) -> uuid.UUID:
             algorithms=[settings.jwt_algorithm],
             options={"require": ["sub", "exp", "type"]},
         )
-        if payload["type"] != "access":
+        if payload["type"] != token_type:
             raise InvalidAccessTokenError
         return uuid.UUID(payload["sub"])
     except (jwt.PyJWTError, ValueError) as error:
