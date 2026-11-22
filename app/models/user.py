@@ -29,6 +29,10 @@ class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     email_verified: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false")
     )
+    # Admins can open the server-rendered management pages (/users, /buckets, /files).
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
     # Current effective tier: cache of the active subscription ('free' when there is none).
     tier: Mapped[str] = mapped_column(
         String(20),

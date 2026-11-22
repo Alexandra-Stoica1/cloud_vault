@@ -19,6 +19,9 @@
     <dt class="col-sm-2 text-sm-end">Email verified</dt>
     <dd class="col-sm-10"><input type="checkbox" disabled {% if model.email_verified %}checked{% endif %}></dd>
 
+    <dt class="col-sm-2 text-sm-end">Administrator</dt>
+    <dd class="col-sm-10"><input type="checkbox" disabled {% if model.is_admin %}checked{% endif %}></dd>
+
     <dt class="col-sm-2 text-sm-end">Bio</dt>
     <dd class="col-sm-10">{{ model.bio or "-" }}</dd>
 
