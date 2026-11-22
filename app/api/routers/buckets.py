@@ -1,16 +1,19 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import DbSession, templates
+from app.api.deps import DbSession, get_current_admin, templates
 from app.schemas import BucketViewModel
 from app.services import BucketService, ServiceError, UserService
 
 # Server-rendered pages. Business rules live in BucketService (shared with /api/buckets).
-router = APIRouter(prefix="/buckets", tags=["buckets"])
+# Admins only: every page requires an admin session (see /login).
+router = APIRouter(
+    prefix="/buckets", tags=["buckets"], dependencies=[Depends(get_current_admin)]
+)
 
 
 def render_form(
