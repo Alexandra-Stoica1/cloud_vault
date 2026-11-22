@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+
+{% block content %}
+<h2>Log in</h2>
+<h5 class="text-muted">Administrators only</h5>
+<hr>
+
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<form method="post" action="/login" style="max-width: 520px">
+    <input type="hidden" name="next" value="{{ next }}">
+
+    <div class="mb-3">
+        <label class="form-label" for="email">Email</label>
+        <input class="form-control" id="email" name="email" type="email" value="{{ email }}"
+               required maxlength="255" autofocus>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" id="password" name="password" type="password" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Log in</button>
+</form>
+{% endblock %}
