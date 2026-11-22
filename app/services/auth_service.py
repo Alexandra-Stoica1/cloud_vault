@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -9,13 +8,13 @@ from app.core.security import (
     create_access_token,
     dummy_password_hash,
     generate_token,
-    hash_password,
     hash_token,
     verify_password,
 )
 from app.models import User
 from app.repositories import RefreshTokenRepository, UserRepository
-from app.services.exceptions import AuthenticationError, ConflictError
+from app.services.exceptions import AuthenticationError
+from app.services.user_service import UserService
 
 INVALID_CREDENTIALS = "Invalid email or password."
 INVALID_REFRESH_TOKEN = "Invalid or expired refresh token."
@@ -35,21 +34,8 @@ class AuthService:
         self.refresh_tokens = RefreshTokenRepository(session)
 
     def register(self, email: str, username: str, password: str) -> User:
-        email = email.lower()
-        if self.users.get_by_email(email) is not None:
-            raise ConflictError("A user with this email already exists.")
-        if self.users.get_by_username(username) is not None:
-            raise ConflictError("A user with this username already exists.")
-        try:
-            return self.users.create(
-                email=email, username=username, password_hash=hash_password(password)
-            )
-        except IntegrityError as error:
-            # Another request registered the same email / username in the meantime.
-            self.session.rollback()
-            raise ConflictError(
-                "A user with this email or username already exists."
-            ) from error
+        """Create a free account. Raises ConflictError if the email or username is taken."""
+        return UserService(self.session).create(email, username, password)
 
     def login(self, email: str, password: str) -> TokenPair:
         user = self.users.get_by_email(email.lower())

@@ -1,11 +1,10 @@
-import secrets
 import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import LoginStreak, PointsAccount, TierId, User, UserSettings
+from app.models import LoginStreak, PointsAccount, User, UserSettings
 
 
 class UserRepository:
@@ -24,17 +23,17 @@ class UserRepository:
     def get_by_username(self, username: str) -> User | None:
         return self.session.scalar(select(User).where(User.username == username))
 
-    def create(
+    def add(
         self,
         email: str,
         username: str,
         password_hash: str,
-        tier: str = TierId.FREE,
+        tier: str,
+        referral_code: str,
         bio: str | None = None,
         email_verified: bool = False,
-        referral_code: str | None = None,
     ) -> User:
-        """Create a user together with the 1:1 rows every user must have."""
+        """Add a user together with the 1:1 rows every user must have."""
         user = User(
             email=email,
             username=username,
@@ -42,41 +41,32 @@ class UserRepository:
             tier=tier,
             bio=bio,
             email_verified=email_verified,
-            referral_code=referral_code or secrets.token_hex(4).upper(),
+            referral_code=referral_code,
         )
         user.points_account = PointsAccount()
         user.login_streak = LoginStreak()
         user.settings = UserSettings()
         self.session.add(user)
-        self.session.commit()
-        self.session.refresh(user)
+        self.session.flush()
         return user
 
     def update(
         self,
-        user_id: uuid.UUID,
+        user: User,
         email: str,
         username: str,
         tier: str,
         bio: str | None,
         email_verified: bool,
-    ) -> User | None:
-        user = self.get_by_id(user_id)
-        if user is None:
-            return None
+    ) -> User:
         user.email = email
         user.username = username
         user.tier = tier
         user.bio = bio
         user.email_verified = email_verified
-        self.session.commit()
-        self.session.refresh(user)
+        self.session.flush()
         return user
 
-    def delete(self, user_id: uuid.UUID) -> bool:
-        user = self.get_by_id(user_id)
-        if user is None:
-            return False
+    def delete(self, user: User) -> None:
         self.session.delete(user)
-        self.session.commit()
-        return True
+        self.session.flush()

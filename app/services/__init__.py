@@ -8,6 +8,7 @@ from app.services.exceptions import (
     PermissionDeniedError,
     ServiceError,
 )
+from app.services.user_service import UserService
 
 __all__ = [
     "AuthService",
@@ -19,4 +20,5 @@ __all__ = [
     "PermissionDeniedError",
     "ServiceError",
     "TokenPair",
+    "UserService",
 ]
