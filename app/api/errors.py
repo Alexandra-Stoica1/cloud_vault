@@ -1,6 +1,9 @@
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from urllib.parse import quote
 
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse, RedirectResponse
+
+from app.api.deps import LoginRequiredError
 from app.services.exceptions import (
     AuthenticationError,
     BusinessRuleError,
@@ -30,5 +33,14 @@ async def service_error_handler(request: Request, error: ServiceError) -> JSONRe
     )
 
 
+async def login_required_handler(
+    request: Request, error: LoginRequiredError
+) -> RedirectResponse:
+    return RedirectResponse(
+        f"/login?next={quote(error.next_path)}", status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ServiceError, service_error_handler)
+    app.add_exception_handler(LoginRequiredError, login_required_handler)

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.security import (
+    ADMIN_SESSION_TOKEN,
     create_access_token,
     dummy_password_hash,
     generate_token,
@@ -13,11 +14,12 @@ from app.core.security import (
 )
 from app.models import User
 from app.repositories import RefreshTokenRepository, UserRepository
-from app.services.exceptions import AuthenticationError
+from app.services.exceptions import AuthenticationError, PermissionDeniedError
 from app.services.user_service import UserService
 
 INVALID_CREDENTIALS = "Invalid email or password."
 INVALID_REFRESH_TOKEN = "Invalid or expired refresh token."
+NOT_AN_ADMIN = "This account is not an administrator."
 
 
 @dataclass(frozen=True)
@@ -38,14 +40,23 @@ class AuthService:
         return UserService(self.session).create(email, username, password)
 
     def login(self, email: str, password: str) -> TokenPair:
-        user = self.users.get_by_email(email.lower())
-        # Always run one password check, so unknown e-mails are not faster to reject.
-        password_hash = user.password_hash if user else dummy_password_hash()
-        if not verify_password(password, password_hash) or user is None:
-            raise AuthenticationError(INVALID_CREDENTIALS)
+        user = self._authenticate(email, password)
         tokens = self._issue_tokens(user)
         self.session.commit()
         return tokens
+
+    def admin_login(self, email: str, password: str) -> tuple[str, int]:
+        """Check an administrator's credentials and return a session token for the
+        HTML pages and its lifetime in seconds.
+        """
+        user = self._authenticate(email, password)
+        if not user.is_admin:
+            raise PermissionDeniedError(NOT_AN_ADMIN)
+        return create_access_token(
+            user.id,
+            token_type=ADMIN_SESSION_TOKEN,
+            expires_in=get_settings().admin_session_expire_minutes * 60,
+        )
 
     def refresh(self, refresh_token: str) -> TokenPair:
         stored = self.refresh_tokens.get_by_hash(hash_token(refresh_token))
@@ -71,6 +82,14 @@ class AuthService:
         if stored is not None and not stored.revoked:
             self.refresh_tokens.revoke(stored)
             self.session.commit()
+
+    def _authenticate(self, email: str, password: str) -> User:
+        user = self.users.get_by_email(email.lower())
+        # Always run one password check, so unknown e-mails are not faster to reject.
+        password_hash = user.password_hash if user else dummy_password_hash()
+        if not verify_password(password, password_hash) or user is None:
+            raise AuthenticationError(INVALID_CREDENTIALS)
+        return user
 
     def _issue_tokens(self, user: User) -> TokenPair:
         access_token, expires_in = create_access_token(user.id)
