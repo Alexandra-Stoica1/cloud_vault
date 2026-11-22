@@ -22,25 +22,17 @@ class NotificationRepository:
     def get_by_id(self, notification_id: uuid.UUID) -> Notification | None:
         return self.session.get(Notification, notification_id)
 
-    def create(self, user_id: uuid.UUID, title: str, message: str) -> Notification:
+    def add(self, user_id: uuid.UUID, title: str, message: str) -> Notification:
         notification = Notification(user_id=user_id, title=title, message=message)
         self.session.add(notification)
-        self.session.commit()
-        self.session.refresh(notification)
+        self.session.flush()
         return notification
 
-    def mark_as_read(self, notification_id: uuid.UUID) -> bool:
-        notification = self.get_by_id(notification_id)
-        if notification is None:
-            return False
+    def mark_as_read(self, notification: Notification) -> Notification:
         notification.is_read = True
-        self.session.commit()
-        return True
+        self.session.flush()
+        return notification
 
-    def delete(self, notification_id: uuid.UUID) -> bool:
-        notification = self.get_by_id(notification_id)
-        if notification is None:
-            return False
+    def delete(self, notification: Notification) -> None:
         self.session.delete(notification)
-        self.session.commit()
-        return True
+        self.session.flush()

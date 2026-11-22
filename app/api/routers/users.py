@@ -1,30 +1,15 @@
 import uuid
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import DbSession, templates
-from app.core.security import hash_password
-from app.repositories import TierRepository, UserRepository
 from app.schemas import UserViewModel
+from app.services import ServiceError, UserService
 
+# Server-rendered pages. Business rules live in UserService.
 router = APIRouter(prefix="/users", tags=["users"])
-
-# Database constraint name -> message shown in the form.
-CONSTRAINT_ERRORS = {
-    "uq_users_email": "A user with this email already exists.",
-    "uq_users_username": "A user with this username already exists.",
-    "uq_users_referral_code": "Could not generate a unique referral code. Please try again.",
-    "fk_users_tier_tiers": "The selected tier does not exist.",
-}
-DEFAULT_ERROR = "The user could not be saved."
-
-
-def integrity_error_message(error: IntegrityError) -> str:
-    constraint = getattr(getattr(error.orig, "diag", None), "constraint_name", None)
-    return CONSTRAINT_ERRORS.get(constraint, DEFAULT_ERROR)
 
 
 def render_form(
@@ -36,7 +21,7 @@ def render_form(
 ):
     context = {
         "model": model,
-        "tiers": TierRepository(session).get_all(),
+        "tiers": UserService(session).list_tiers(),
         "error": error,
     }
     return templates.TemplateResponse(
@@ -46,7 +31,7 @@ def render_form(
 
 @router.get("")
 def index(request: Request, session: DbSession):
-    users = UserRepository(session).get_all()
+    users = UserService(session).list_all()
     model = [UserViewModel.model_validate(user) for user in users]
     return templates.TemplateResponse(request, "users/index.html", {"model": model})
 
@@ -75,39 +60,29 @@ def create_post(
         email_verified=email_verified,
     )
     try:
-        user = UserRepository(session).create(
+        user = UserService(session).create(
             email=model.email,
             username=model.username,
-            password_hash=hash_password(password),
+            password=password,
             tier=model.tier,
             bio=model.bio,
             email_verified=model.email_verified,
         )
-    except IntegrityError as error:
-        session.rollback()
-        return render_form(
-            request, session, "users/create.html", model, integrity_error_message(error)
-        )
+    except ServiceError as error:
+        return render_form(request, session, "users/create.html", model, error.message)
     return RedirectResponse(f"/users/{user.id}", status_code=303)
 
 
 @router.get("/{user_id}")
 def details(request: Request, user_id: uuid.UUID, session: DbSession):
-    user = UserRepository(session).get_by_id(user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    model = UserViewModel.model_validate(user)
+    model = UserViewModel.model_validate(UserService(session).get(user_id))
     return templates.TemplateResponse(request, "users/details.html", {"model": model})
 
 
 @router.get("/{user_id}/edit")
 def edit(request: Request, user_id: uuid.UUID, session: DbSession):
-    user = UserRepository(session).get_by_id(user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return render_form(
-        request, session, "users/edit.html", UserViewModel.model_validate(user)
-    )
+    model = UserViewModel.model_validate(UserService(session).get(user_id))
+    return render_form(request, session, "users/edit.html", model)
 
 
 @router.post("/{user_id}/edit")
@@ -121,6 +96,8 @@ def edit_post(
     bio: str = Form(""),
     email_verified: bool = Form(False),
 ):
+    service = UserService(session)
+    service.get(user_id)  # 404 before showing the form again
     model = UserViewModel(
         id=user_id,
         username=username.strip(),
@@ -130,7 +107,7 @@ def edit_post(
         email_verified=email_verified,
     )
     try:
-        user = UserRepository(session).update(
+        service.update(
             user_id,
             email=model.email,
             username=model.username,
@@ -138,11 +115,6 @@ def edit_post(
             bio=model.bio,
             email_verified=model.email_verified,
         )
-    except IntegrityError as error:
-        session.rollback()
-        return render_form(
-            request, session, "users/edit.html", model, integrity_error_message(error)
-        )
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+    except ServiceError as error:
+        return render_form(request, session, "users/edit.html", model, error.message)
     return RedirectResponse(f"/users/{user_id}", status_code=303)
