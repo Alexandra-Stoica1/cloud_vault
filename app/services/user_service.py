@@ -8,13 +8,19 @@ from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
 from app.models import Tier, TierId, User
-from app.repositories import TierRepository, UserRepository
-from app.services.exceptions import ConflictError, NotFoundError, ServiceError
+from app.repositories import RefreshTokenRepository, TierRepository, UserRepository
+from app.services.exceptions import (
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+    ServiceError,
+)
 
 USER_NOT_FOUND = "User not found."
 EMAIL_TAKEN = "A user with this email already exists."
 USERNAME_TAKEN = "A user with this username already exists."
 TIER_NOT_FOUND = "The selected tier does not exist."
+CANNOT_DELETE_SELF = "You cannot delete your own account."
 
 # Database constraint name -> error raised when a concurrent request wins the race.
 CONSTRAINT_ERRORS: dict[str, tuple[type[ServiceError], str]] = {
@@ -38,6 +44,7 @@ class UserService:
         self.session = session
         self.users = UserRepository(session)
         self.tiers = TierRepository(session)
+        self.refresh_tokens = RefreshTokenRepository(session)
 
     def list_all(self) -> Sequence[User]:
         return self.users.get_all()
@@ -109,6 +116,22 @@ class UserService:
             self._raise_integrity_error(error)
         self.session.refresh(user)
         return user
+
+    def delete(
+        self, user_id: uuid.UUID, acting_user_id: uuid.UUID | None = None
+    ) -> None:
+        """Soft delete: the account disappears from the application and is signed out
+        everywhere, but its row and history (payments, points, ...) are kept.
+
+        `acting_user_id` is the admin doing the delete, who cannot delete themselves.
+        """
+        user = self.get(user_id)  # 404 if it does not exist or is already deleted
+        if acting_user_id is not None and user.id == acting_user_id:
+            raise BusinessRuleError(CANNOT_DELETE_SELF)
+
+        self.users.soft_delete(user)
+        self.refresh_tokens.revoke_all_for_user(user.id)
+        self.session.commit()
 
     def _check_unique(
         self, email: str, username: str, exclude_id: uuid.UUID | None = None

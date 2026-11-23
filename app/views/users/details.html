@@ -31,6 +31,9 @@
 
 <p>
     <a href="/users/{{ model.id }}/edit">Edit</a> |
+    {% if model.id != request.state.admin.id %}
+    <a href="/users/{{ model.id }}/delete">Delete</a> |
+    {% endif %}
     <a href="/users">Back to list</a>
 </p>
 {% endblock %}

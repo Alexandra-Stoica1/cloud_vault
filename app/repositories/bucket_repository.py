@@ -2,9 +2,9 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import func, or_, select, update
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, contains_eager, selectinload
 
-from app.models import Bucket, BucketMember, BucketRole, File, Folder
+from app.models import Bucket, BucketMember, BucketRole, File, Folder, User
 
 
 class BucketRepository:
@@ -12,8 +12,13 @@ class BucketRepository:
         self.session = session
 
     def _select_with_relations(self):
-        return select(Bucket).options(
-            joinedload(Bucket.owner), selectinload(Bucket.members)
+        """Buckets with their owner and members. Buckets of soft-deleted users are
+        left out, also for the members of their shared buckets."""
+        return (
+            select(Bucket)
+            .join(Bucket.owner)
+            .where(User.deleted_at.is_(None))
+            .options(contains_eager(Bucket.owner), selectinload(Bucket.members))
         )
 
     def get_all(self) -> Sequence[Bucket]:

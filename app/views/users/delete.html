@@ -1,0 +1,39 @@
+{% extends "base.html" %} {% block title %}Delete {{ model.username }}{%
+endblock %} {% block content %}
+<h2>Delete</h2>
+<h5 class="text-muted">User</h5>
+<hr />
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="alert alert-warning">
+  Are you sure you want to delete this user? The account is deactivated:
+  <ul class="mb-0 mt-2">
+    <li>the user is signed out and can no longer sign in;</li>
+    <li>
+      the user and their buckets disappear from every list, also for the members
+      of their shared buckets;
+    </li>
+    <li>their payments, points and the rest of their history are kept;</li>
+    <li>their email and username can be used by a new account.</li>
+  </ul>
+</div>
+
+<dl class="row">
+  <dt class="col-sm-2 text-sm-end">Username</dt>
+  <dd class="col-sm-10">{{ model.username }}</dd>
+
+  <dt class="col-sm-2 text-sm-end">Email</dt>
+  <dd class="col-sm-10">{{ model.email }}</dd>
+
+  <dt class="col-sm-2 text-sm-end">Tier</dt>
+  <dd class="col-sm-10">{{ model.tier }}</dd>
+</dl>
+
+<form method="post" action="/users/{{ model.id }}/delete">
+  <button type="submit" class="btn btn-danger">Delete</button>
+  <a class="ms-2" href="/users">Back to list</a>
+</form>
+{% endblock %}

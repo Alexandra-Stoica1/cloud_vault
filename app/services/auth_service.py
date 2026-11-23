@@ -69,6 +69,8 @@ class AuthService:
             raise AuthenticationError(INVALID_REFRESH_TOKEN)
         if stored.expires_at <= datetime.now(UTC):
             raise AuthenticationError(INVALID_REFRESH_TOKEN)
+        if stored.user.is_deleted:
+            raise AuthenticationError(INVALID_REFRESH_TOKEN)
 
         # Rotation: the old refresh token can no longer be used.
         self.refresh_tokens.revoke(stored)
