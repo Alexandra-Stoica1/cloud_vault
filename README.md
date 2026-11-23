@@ -128,6 +128,24 @@ not administrators get `403`.
   Bearer token and an API token does not open the admin pages.
 - The **Log out** button in the navigation bar removes the cookie.
 
+## Deleting users (soft delete)
+
+Users are never removed from the database, because almost every table points to them (payments,
+subscriptions, points, buckets...). Deleting a user from the admin pages (`/users/{id}/delete`)
+only sets `users.deleted_at`:
+
+- every user query skips deleted users, so they disappear from the lists and details pages, cannot
+  sign in, and their access tokens stop working; their refresh tokens are revoked;
+- their buckets, with the files and folders, are hidden too, also from the members of their shared
+  buckets;
+- their history stays in the database;
+- email and username are unique among active users only (partial unique indexes), so they can be
+  used by a new account;
+- an admin cannot delete their own account.
+
+Buckets, on the other hand, are deleted for good (hard delete) together with their folders, files,
+members and invitations.
+
 ## Authentication API
 
 | Method | Endpoint | Body | Response |
