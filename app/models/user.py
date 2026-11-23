@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, String, Text, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, CreatedAtMixin, UUIDPrimaryKeyMixin
@@ -21,9 +22,23 @@ if TYPE_CHECKING:
 class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     __tablename__ = "users"
 
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    __table_args__ = (
+        Index(
+            "uq_users_email",
+            "email",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        Index(
+            "uq_users_username",
+            "username",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    username: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    username: Mapped[str] = mapped_column(String(100), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     bio: Mapped[str | None] = mapped_column(Text)
     email_verified: Mapped[bool] = mapped_column(
@@ -42,6 +57,7 @@ class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         index=True,
     )
     referral_code: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     tier_ref: Mapped["Tier"] = relationship(back_populates="users")
     buckets: Mapped[list["Bucket"]] = relationship(
@@ -71,3 +87,7 @@ class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
 
     def __repr__(self) -> str:
         return f"<User {self.username!r}>"
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
