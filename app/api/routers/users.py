@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import DbSession, get_current_admin, templates
+from app.api.deps import CurrentAdmin, DbSession, get_current_admin, templates
 from app.schemas import UserViewModel
-from app.services import ServiceError, UserService
+from app.services import BusinessRuleError, ServiceError, UserService
 
 # Server-rendered pages. Business rules live in UserService.
 # Admins only: every page requires an admin session (see /login).
@@ -121,3 +121,26 @@ def edit_post(
     except ServiceError as error:
         return render_form(request, session, "users/edit.html", model, error.message)
     return RedirectResponse(f"/users/{user_id}", status_code=303)
+
+
+@router.get("/{user_id}/delete")
+def delete(request: Request, user_id: uuid.UUID, session: DbSession):
+    model = UserViewModel.model_validate(UserService(session).get(user_id))
+    return templates.TemplateResponse(request, "users/delete.html", {"model": model})
+
+
+@router.post("/{user_id}/delete")
+def delete_post(
+    request: Request, user_id: uuid.UUID, session: DbSession, admin: CurrentAdmin
+):
+    """Soft delete; the signed-in admin cannot delete their own account."""
+    service = UserService(session)
+    try:
+        service.delete(user_id, acting_user_id=admin.id)
+    except BusinessRuleError as error:
+        model = UserViewModel.model_validate(service.get(user_id))
+        context = {"model": model, "error": error.message}
+        return templates.TemplateResponse(
+            request, "users/delete.html", context, status_code=400
+        )
+    return RedirectResponse("/users", status_code=303)

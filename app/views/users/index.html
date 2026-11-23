@@ -25,6 +25,9 @@
             <td>
                 <a href="/users/{{ user.id }}/edit">Edit</a> |
                 <a href="/users/{{ user.id }}">Details</a>
+                {% if user.id != request.state.admin.id %}
+                | <a href="/users/{{ user.id }}/delete">Delete</a>
+                {% endif %}
             </td>
         </tr>
         {% else %}
