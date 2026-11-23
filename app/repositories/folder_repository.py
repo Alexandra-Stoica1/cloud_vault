@@ -2,9 +2,9 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, contains_eager
 
-from app.models import Folder
+from app.models import Bucket, Folder, User
 
 
 class FolderRepository:
@@ -12,7 +12,15 @@ class FolderRepository:
         self.session = session
 
     def get_all(self) -> Sequence[Folder]:
-        stmt = select(Folder).options(joinedload(Folder.bucket)).order_by(Folder.name)
+        """Folders of every bucket, except the buckets of soft-deleted users."""
+        stmt = (
+            select(Folder)
+            .join(Folder.bucket)
+            .join(Bucket.owner)
+            .where(User.deleted_at.is_(None))
+            .options(contains_eager(Folder.bucket))
+            .order_by(Folder.name)
+        )
         return self.session.scalars(stmt).all()
 
     def get_by_id(self, folder_id: uuid.UUID) -> Folder | None:

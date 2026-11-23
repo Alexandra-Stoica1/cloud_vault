@@ -2,9 +2,9 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, contains_eager, joinedload
 
-from app.models import Bucket, File
+from app.models import Bucket, File, User
 
 
 class FileRepository:
@@ -12,10 +12,18 @@ class FileRepository:
         self.session = session
 
     def _select_with_relations(self):
-        return select(File).options(
-            joinedload(File.bucket).joinedload(Bucket.owner),
-            joinedload(File.folder),
-            joinedload(File.uploader),
+        """Files with their bucket, folder and uploader. Files in the buckets of
+        soft-deleted users are left out, like the buckets themselves."""
+        return (
+            select(File)
+            .join(File.bucket)
+            .join(Bucket.owner)
+            .where(User.deleted_at.is_(None))
+            .options(
+                contains_eager(File.bucket).contains_eager(Bucket.owner),
+                joinedload(File.folder),
+                joinedload(File.uploader),
+            )
         )
 
     def get_all(self) -> Sequence[File]:
